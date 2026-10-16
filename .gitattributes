@@ -1,0 +1,4 @@
+# Bun writes lockfiles with LF endings; keep them stable across platforms
+# so `bun install --frozen-lockfile` never reports spurious changes.
+bun.lock text eol=lf
+bun.lockb binary
