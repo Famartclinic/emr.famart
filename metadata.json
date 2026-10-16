@@ -1,0 +1,6 @@
+{
+  "name": "Famart Clinic EMR",
+  "description": "Electronic Medical Records & Clinic Management System for Famart Clinic - patient registration, triage, consultation, laboratory, pharmacy, and billing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
