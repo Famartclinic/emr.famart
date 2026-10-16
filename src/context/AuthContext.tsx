@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, UserRole } from '../types/emr';
-import { StorageService } from '../services/storage';
+import { StorageService, hydrateStorageFromSupabase } from '../services/storage';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import { clearSupabaseSync } from '../services/supabaseSync';
+import { isValidPin, pinToPassword } from '../services/staffPin';
 
 interface AuthContextType {
   currentUser: UserProfile;
@@ -8,6 +11,7 @@ interface AuthContextType {
   switchUser: (userId: string) => void;
   switchRole: (role: UserRole) => void;
   login: (email: string) => boolean;
+  signIn: (staffId: string, pin: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
   canAccess: (module: string) => boolean;
@@ -21,7 +25,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUserId, setCurrentUserId] = useState<string>(() => {
     return localStorage.getItem('famart_active_user_id') || users[0].id;
   });
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !isSupabaseConfigured);
+
+  /**
+   * Makes an account the active one. Re-reads the staff list from storage so it
+   * stays correct after hydration swaps the local rows for the authoritative ones.
+   */
+  const activateByEmail = (email: string): boolean => {
+    const normalized = email.trim().toLowerCase();
+    const staff = StorageService.getUsers();
+    const target = staff.find(u => u.email.toLowerCase() === normalized);
+    if (!target) return false;
+
+    setUsers(staff);
+    setCurrentUserId(target.id);
+    localStorage.setItem('famart_active_user_id', target.id);
+    setIsAuthenticated(true);
+    StorageService.logAction(
+      target.id,
+      target.name,
+      target.role,
+      'USER_LOGIN',
+      'auth',
+      target.id,
+      `Signed in as ${target.name} (${target.title})`
+    );
+    return true;
+  };
+
+  // Restore a persisted Supabase session on reload.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      const email = data.session?.user.email;
+      if (!email) return;
+      await hydrateStorageFromSupabase();
+      activateByEmail(email);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleStorage = () => {
@@ -33,7 +76,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const currentUser = users.find(u => u.id === currentUserId) || users[0];
 
+  /**
+   * Local-only account switching, kept as a convenience when Supabase is not
+   * configured. Once real auth is in play, changing accounts requires a PIN
+   * sign-in, so this intentionally does nothing.
+   */
   const switchUser = (userId: string) => {
+    if (isSupabaseConfigured) return;
     const target = users.find(u => u.id === userId);
     if (target) {
       setCurrentUserId(target.id);
@@ -67,7 +116,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
+  /**
+   * Signs in with a staff account and its 4-digit PIN, then pulls the
+   * authoritative rows down. The database's RLS policies require a real
+   * Supabase session, so this is the gate for everything stored remotely.
+   */
+  const signIn = async (staffId: string, pin: string) => {
+    const target = users.find(u => u.id === staffId);
+    if (!target) {
+      return { ok: false, error: 'Select a staff account first.' };
+    }
+    if (!isValidPin(pin)) {
+      return { ok: false, error: 'Your PIN must be exactly 4 digits.' };
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      if (!target.email) {
+        return { ok: false, error: 'That staff account has no email address on file.' };
+      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email: target.email,
+        password: pinToPassword(pin),
+      });
+      if (error) {
+        return { ok: false, error: 'Incorrect PIN for this account.' };
+      }
+      // Hydration replaces the local staff list with the authoritative rows,
+      // so the account is re-resolved by email afterwards.
+      await hydrateStorageFromSupabase();
+    }
+
+    if (!activateByEmail(target.email)) {
+      return { ok: false, error: 'Signed in, but no staff profile was found for this account.' };
+    }
+    return { ok: true };
+  };
+
   const logout = () => {
+    if (isSupabaseConfigured && supabase) {
+      void supabase.auth.signOut();
+    }
+    clearSupabaseSync();
     setIsAuthenticated(false);
   };
 
@@ -126,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         switchUser,
         switchRole,
         login,
+        signIn,
         logout,
         isAuthenticated,
         canAccess,

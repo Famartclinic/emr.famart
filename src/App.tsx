@@ -22,10 +22,12 @@ import { SettingsView } from './views/SettingsView';
 import { NursingProceduresView } from './views/NursingProceduresView';
 import { AuditLogger } from './components/AuditLogger';
 import { StorageService } from './services/storage';
+import { isSupabaseConfigured } from './services/supabaseClient';
+import { sanitizePinInput } from './services/staffPin';
 import { Lock, LogIn, ArrowRight, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
-  const { isAuthenticated, login, currentUser, allUsers, canAccess } = useAuth();
+  const { isAuthenticated, login, signIn, currentUser, allUsers, canAccess } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState<string>('dashboard');
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
@@ -33,8 +35,37 @@ const MainLayout: React.FC = () => {
   const [openRegisterModal, setOpenRegisterModal] = useState(false);
 
   // Login form state when unauthenticated
-  const [loginEmail, setLoginEmail] = useState('');
+  const [selectedStaffId, setSelectedStaffId] = useState('');
+  const [loginPin, setLoginPin] = useState('');
+  const [loginMessage, setLoginMessage] = useState('');
   const [loginError, setLoginError] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
+
+  const selectedStaff = allUsers.find((u) => u.id === selectedStaffId) ?? null;
+
+  const handlePinSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStaff) {
+      setLoginError(true);
+      setLoginMessage('Choose your staff account first.');
+      return;
+    }
+    if (loginPin.length !== 4) {
+      setLoginError(true);
+      setLoginMessage('Your PIN is 4 digits.');
+      return;
+    }
+    setSigningIn(true);
+    setLoginError(false);
+    setLoginMessage('');
+    const result = await signIn(selectedStaff.id, loginPin);
+    if (!result.ok) {
+      setLoginError(true);
+      setLoginMessage(result.error ?? 'Sign-in failed. Try again.');
+      setLoginPin('');
+      setSigningIn(false);
+    }
+  };
 
   // Keyboard shortcuts: Cmd/Ctrl+K opens search; "/" focuses search outside form fields
   useEffect(() => {
@@ -104,26 +135,116 @@ const MainLayout: React.FC = () => {
           </div>
 
           <div className="p-8 space-y-5 text-xs">
-            <div>
-              <label className="block text-slate-600 font-semibold mb-1">
-                Select staff account to continue
-              </label>
-              <div className="space-y-2 mt-2">
-                {allUsers.map((u) => (
-                  <button
-                    key={u.id}
-                    onClick={() => login(u.email)}
-                    className="w-full text-left p-2.5 rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 flex items-center justify-between transition-colors cursor-pointer group"
-                  >
-                    <div>
-                      <div className="font-semibold text-slate-900 group-hover:text-blue-700">{u.name}</div>
-                      <div className="text-[11px] text-slate-500">{u.title} ({u.role.replace('_', ' ')})</div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-transform group-hover:translate-x-0.5" />
-                  </button>
-                ))}
+            {!isSupabaseConfigured && (
+              <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-amber-800">
+                <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                <span className="leading-snug">
+                  Running in local mode. Configure <code className="code-ref">VITE_SUPABASE_URL</code> and{' '}
+                  <code className="code-ref">VITE_SUPABASE_ANON_KEY</code> to use the clinic database.
+                </span>
               </div>
-            </div>
+            )}
+
+            {isSupabaseConfigured && selectedStaff && (
+              <form onSubmit={handlePinSignIn} className="space-y-3.5 rounded-xl border border-blue-200 bg-blue-50/40 p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="font-semibold text-slate-900">{selectedStaff.name}</div>
+                    <div className="text-[11px] text-slate-500">
+                      {selectedStaff.title} ({selectedStaff.role.replace('_', ' ')})
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedStaffId('');
+                      setLoginPin('');
+                      setLoginError(false);
+                      setLoginMessage('');
+                    }}
+                    className="text-[10px] font-semibold text-blue-700 hover:underline cursor-pointer shrink-0"
+                  >
+                    Change
+                  </button>
+                </div>
+
+                <div>
+                  <label htmlFor="login-pin" className="flex items-center gap-1.5 text-slate-600 font-semibold mb-1">
+                    <Lock className="w-3.5 h-3.5" />
+                    4-digit PIN
+                  </label>
+                  <input
+                    id="login-pin"
+                    type="password"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    maxLength={4}
+                    required
+                    autoFocus
+                    value={loginPin}
+                    onChange={(e) => setLoginPin(sanitizePinInput(e.target.value))}
+                    placeholder="••••"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 outline-none text-center text-lg font-mono tracking-[0.7em] focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                {loginError && (
+                  <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 p-2.5 text-red-700">
+                    <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span className="leading-snug">{loginMessage}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={signingIn || loginPin.length !== 4}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold transition-colors cursor-pointer"
+                >
+                  <LogIn className="w-4 h-4" />
+                  {signingIn ? 'Verifying PIN…' : 'Sign in securely'}
+                </button>
+              </form>
+            )}
+
+            {(!isSupabaseConfigured || !selectedStaff) && (
+              <div>
+                <label className="block text-slate-600 font-semibold mb-1">
+                  {isSupabaseConfigured ? 'Select your staff account' : 'Select staff account to continue'}
+                </label>
+                <div className="space-y-2 mt-2 max-h-64 overflow-y-auto pr-1">
+                  {allUsers.map((u) => (
+                    <button
+                      key={u.id}
+                      type="button"
+                      disabled={isSupabaseConfigured && !u.isActive}
+                      onClick={() => {
+                        if (!isSupabaseConfigured) {
+                          login(u.email);
+                          return;
+                        }
+                        setSelectedStaffId(u.id);
+                        setLoginPin('');
+                        setLoginError(false);
+                        setLoginMessage('');
+                      }}
+                      className="w-full text-left p-2.5 rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between transition-colors cursor-pointer group"
+                    >
+                      <div>
+                        <div className="font-semibold text-slate-900 group-hover:text-blue-700">{u.name}</div>
+                        <div className="text-[11px] text-slate-500">{u.title} ({u.role.replace('_', ' ')})</div>
+                      </div>
+                      {u.isActive ? (
+                        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-transform group-hover:translate-x-0.5" />
+                      ) : (
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-red-200 bg-red-50 text-red-700">
+                          Disabled
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-slate-100">
               Famart Clinic EMR · Kenya Data Protection Act 2019 Compliant

@@ -17,6 +17,21 @@ import {
   NursingProcedure,
   AppNotification,
 } from '../types/emr';
+import {
+  type CollectionName,
+  type RealtimeSignal,
+  deleteEntity,
+  fetchCollection,
+  fetchSettings,
+  initSupabaseSync,
+  isPushInFlight,
+  isSyncEnabled,
+  pushEntity,
+  pushSettings,
+  replaceEntityFacilityScoped,
+  startRealtime,
+} from './supabaseSync';
+import { staffService, type StaffDraft, type StaffResult } from './staffService';
 
 const STORAGE_KEYS = {
   PATIENTS: 'famart_emr_patients_v1',
@@ -816,6 +831,44 @@ const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Local persistence, mirrored to Supabase when a session is available
+// ---------------------------------------------------------------------------
+
+type StoredRow = Record<string, unknown>;
+
+/** localStorage key -> the Supabase collection it mirrors. */
+const COLLECTION_BY_KEY: Record<string, CollectionName> = {
+  [STORAGE_KEYS.PATIENTS]: 'patients',
+  [STORAGE_KEYS.QUEUE]: 'patient_queue',
+  [STORAGE_KEYS.VITALS]: 'vitals',
+  [STORAGE_KEYS.ENCOUNTERS]: 'encounters',
+  [STORAGE_KEYS.LAB_CATALOG]: 'lab_catalog',
+  [STORAGE_KEYS.LAB_ORDERS]: 'lab_orders',
+  [STORAGE_KEYS.MEDICATIONS]: 'medications',
+  [STORAGE_KEYS.PRESCRIPTIONS]: 'prescriptions',
+  [STORAGE_KEYS.SERVICES]: 'services',
+  [STORAGE_KEYS.INVOICES]: 'invoices',
+  [STORAGE_KEYS.PROCEDURES]: 'nursing_procedures',
+  [STORAGE_KEYS.APPOINTMENTS]: 'appointments',
+  [STORAGE_KEYS.AUDIT_LOGS]: 'audit_logs',
+  [STORAGE_KEYS.NOTIFICATIONS]: 'notifications',
+};
+
+/** Serialised id -> row, so only rows that actually changed are sent upstream. */
+const snapshots = new Map<string, Map<string, string>>();
+
+function indexRows(value: unknown): Map<string, string> {
+  const index = new Map<string, string>();
+  if (!Array.isArray(value)) return index;
+  for (const item of value as StoredRow[]) {
+    if (item && item.id !== undefined && item.id !== null) {
+      index.set(String(item.id), JSON.stringify(item));
+    }
+  }
+  return index;
+}
+
 // Helper to safely load data or initialize default
 function loadFromStorage<T>(key: string, defaultValue: T): T {
   try {
@@ -831,14 +884,143 @@ function loadFromStorage<T>(key: string, defaultValue: T): T {
   }
 }
 
-function saveToStorage<T>(key: string, value: T): void {
+/** Writes locally and notifies listeners without touching Supabase. */
+function writeLocal<T>(key: string, value: T, notify = true): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
-    // Trigger custom window event for inter-component reactive sync
-    window.dispatchEvent(new CustomEvent('famart_storage_updated', { detail: { key } }));
+    snapshots.set(key, indexRows(value));
+    if (notify) notifyStorage(key);
   } catch (err) {
     console.error(`Error saving key ${key} to storage:`, err);
   }
+}
+
+/** Trigger custom window event for inter-component reactive sync. */
+function notifyStorage(key = 'all'): void {
+  window.dispatchEvent(new CustomEvent('famart_storage_updated', { detail: { key } }));
+}
+
+/**
+ * Sends only the rows that differ from the last local write. Removals are
+ * skipped for the append-only audit trail.
+ */
+function mirrorToSupabase(key: string, value: unknown): void {
+  if (!isSyncEnabled()) return;
+
+  if (key === STORAGE_KEYS.SETTINGS) {
+    void pushSettings(value as StoredRow);
+    return;
+  }
+
+  const collection = COLLECTION_BY_KEY[key];
+  if (!collection) return;
+
+  const previous = snapshots.get(key) ?? new Map<string, string>();
+  const current = indexRows(value);
+
+  for (const [id, serialised] of current) {
+    if (previous.get(id) === serialised) continue;
+    const row = (value as StoredRow[]).find((item) => String(item.id) === id);
+    if (row) void pushEntity(collection, row);
+  }
+
+  if (collection !== 'audit_logs') {
+    for (const id of previous.keys()) {
+      if (!current.has(id)) void deleteEntity(collection, id);
+    }
+  }
+}
+
+function saveToStorage<T>(key: string, value: T): void {
+  mirrorToSupabase(key, value);
+  writeLocal(key, value);
+}
+
+/**
+ * Pulls the authoritative rows down into localStorage. Supabase is the source
+ * of truth, so an empty remote collection clears the local copy.
+ *
+ * Returns false when Supabase is unconfigured or nobody is signed in, in which
+ * case the app keeps running purely on localStorage.
+ */
+export async function hydrateStorageFromSupabase(): Promise<boolean> {
+  const signedIn = await initSupabaseSync();
+  if (!signedIn) return false;
+
+  const entries = Object.entries(COLLECTION_BY_KEY);
+  const [collections, settings, staff] = await Promise.all([
+    Promise.all(entries.map(([, collection]) => fetchCollection(collection))),
+    fetchSettings(),
+    staffService.fetchStaff(),
+  ]);
+
+  // Written silently so the UI refreshes once, not once per collection.
+  entries.forEach(([key], index) => {
+    const rows = collections[index];
+    if (rows) writeLocal(key, rows, false);
+  });
+
+  if (settings) {
+    const { facility_id, ...rest } = settings;
+    void facility_id;
+    writeLocal(STORAGE_KEYS.SETTINGS, { ...INITIAL_SETTINGS, ...rest } as ClinicSettings, false);
+  }
+
+  if (staff) writeLocal(STORAGE_KEYS.USERS, staff, false);
+
+  notifyStorage();
+  startRealtimeListener();
+  return true;
+}
+
+/**
+ * Re-fetches a single collection (or the staff list) after a realtime event and
+ * republishes it locally. Skipped while our own write for that collection is
+ * still in flight, so the UI doesn't briefly revert to the server's older state.
+ */
+async function refreshFromRealtime(signal: RealtimeSignal): Promise<void> {
+  if (signal === 'staff') {
+    const staff = await staffService.fetchStaff();
+    if (staff) writeLocal(STORAGE_KEYS.USERS, staff);
+    return;
+  }
+
+  const collection: CollectionName = signal;
+  if (isPushInFlight(collection)) return;
+
+  const key = Object.entries(COLLECTION_BY_KEY).find(([, value]) => value === collection)?.[0];
+  if (!key) return;
+
+  const rows = await fetchCollection(collection);
+  if (rows) writeLocal(key, rows);
+}
+
+/**
+ * Reloads just the staff list from Supabase. Used after staff mutations since
+ * those go through the Edge Function rather than the generic write path.
+ */
+export async function refreshStaffFromSupabase(): Promise<void> {
+  const staff = await staffService.fetchStaff();
+  if (staff) writeLocal(STORAGE_KEYS.USERS, staff);
+}
+
+let realtimeStarted = false;
+
+function startRealtimeListener(): void {
+  if (realtimeStarted || !isSyncEnabled()) return;
+  realtimeStarted = true;
+  startRealtime(signal => {
+    void refreshFromRealtime(signal);
+  });
+}
+
+/** Pushes every local collection up, pruning remote rows that no longer exist. */
+async function resyncAllToSupabase(): Promise<void> {
+  if (!isSyncEnabled()) return;
+  for (const [key, collection] of Object.entries(COLLECTION_BY_KEY)) {
+    await replaceEntityFacilityScoped(collection, loadFromStorage(key, [] as StoredRow[]));
+  }
+  await pushSettings(StorageService.getSettings() as unknown as StoredRow);
 }
 
 export const StorageService = {
@@ -848,36 +1030,84 @@ export const StorageService = {
 
   // Users
   getUsers: (): UserProfile[] => loadFromStorage(STORAGE_KEYS.USERS, INITIAL_USERS),
-  saveUser: (user: UserProfile) => {
-    const users = StorageService.getUsers();
-    const idx = users.findIndex(u => u.id === user.id);
-    if (idx >= 0) {
-      users[idx] = user;
-    } else {
-      users.push(user);
-    }
-    saveToStorage(STORAGE_KEYS.USERS, users);
-  },
-  deleteUser: (id: string): boolean => {
-    let users = StorageService.getUsers();
-    const target = users.find(u => u.id === id);
-    if (target?.role === 'admin') {
-      const activeAdmins = users.filter(u => u.role === 'admin' && u.isActive && u.id !== id);
-      if (activeAdmins.length === 0) {
-        return false;
-      }
-    }
-    users = users.filter(u => u.id !== id);
-    saveToStorage(STORAGE_KEYS.USERS, users);
-    return true;
-  },
-  setUserActiveStatus: (id: string, isActive: boolean) => {
-    const users = StorageService.getUsers();
-    const target = users.find(u => u.id === id);
-    if (target) {
-      target.isActive = isActive;
+  // Staff accounts — backed by `user_profiles` + Supabase Auth when configured.
+  // Mutations go through the staff-admin Edge Function because creating or
+  // re-credentialing a login requires the service-role key.
+  createStaff: async (draft: StaffDraft, pin: string): Promise<StaffResult> => {
+    if (!isSyncEnabled()) {
+      const users = StorageService.getUsers();
+      users.push({
+        id: `usr-${Date.now()}`,
+        name: draft.fullName,
+        email: draft.email,
+        username: draft.username,
+        role: draft.role,
+        title: draft.title || 'Staff Officer',
+        department: draft.department || 'Outpatient Clinic',
+        phone: draft.phone,
+        licenseNumber: draft.licenseNumber,
+        isActive: true,
+      });
       saveToStorage(STORAGE_KEYS.USERS, users);
+      return { ok: true };
     }
+    const result = await staffService.create(draft, pin);
+    if (result.ok) await refreshStaffFromSupabase();
+    return result;
+  },
+  updateStaff: async (id: string, patch: Partial<StaffDraft>): Promise<StaffResult> => {
+    if (!isSyncEnabled()) {
+      const users = StorageService.getUsers();
+      const target = users.find(u => u.id === id);
+      if (!target) return { ok: false, error: 'Staff member not found' };
+      if (patch.fullName !== undefined) target.name = patch.fullName;
+      if (patch.role !== undefined) target.role = patch.role;
+      if (patch.title !== undefined) target.title = patch.title;
+      if (patch.department !== undefined) target.department = patch.department;
+      if (patch.phone !== undefined) target.phone = patch.phone;
+      if (patch.licenseNumber !== undefined) target.licenseNumber = patch.licenseNumber;
+      if (patch.username !== undefined) target.username = patch.username;
+      saveToStorage(STORAGE_KEYS.USERS, users);
+      return { ok: true };
+    }
+    const result = await staffService.update(id, patch);
+    if (result.ok) await refreshStaffFromSupabase();
+    return result;
+  },
+  setStaffPin: (id: string | undefined, pin: string): Promise<StaffResult> => {
+    if (!isSyncEnabled()) return Promise.resolve({ ok: true });
+    return staffService.setPin(id, pin);
+  },
+  setUserActiveStatus: async (id: string, isActive: boolean): Promise<StaffResult> => {
+    if (!isSyncEnabled()) {
+      const users = StorageService.getUsers();
+      const target = users.find(u => u.id === id);
+      if (target) {
+        target.isActive = isActive;
+        saveToStorage(STORAGE_KEYS.USERS, users);
+      }
+      return { ok: true };
+    }
+    const result = await staffService.setActive(id, isActive);
+    if (result.ok) await refreshStaffFromSupabase();
+    return result;
+  },
+  deleteUser: async (id: string): Promise<StaffResult> => {
+    if (!isSyncEnabled()) {
+      const users = StorageService.getUsers();
+      const target = users.find(u => u.id === id);
+      if (target?.role === 'admin') {
+        const others = users.filter(u => u.role === 'admin' && u.isActive && u.id !== id);
+        if (others.length === 0) {
+          return { ok: false, error: 'This is the only active administrator' };
+        }
+      }
+      saveToStorage(STORAGE_KEYS.USERS, users.filter(u => u.id !== id));
+      return { ok: true };
+    }
+    const result = await staffService.remove(id);
+    if (result.ok) await refreshStaffFromSupabase();
+    return result;
   },
 
   // Patients
@@ -1265,6 +1495,7 @@ export const StorageService = {
   // Reset to factory defaults if ever needed
   resetToSeedData: () => {
     localStorage.clear();
+    snapshots.clear();
     saveToStorage(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
     saveToStorage(STORAGE_KEYS.USERS, INITIAL_USERS);
     saveToStorage(STORAGE_KEYS.PATIENTS, INITIAL_PATIENTS);
@@ -1281,6 +1512,7 @@ export const StorageService = {
     saveToStorage(STORAGE_KEYS.APPOINTMENTS, INITIAL_APPOINTMENTS);
     saveToStorage(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS);
     saveToStorage(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
-    window.location.reload();
+    // Give the upstream mirror a chance to finish before the reload.
+    void resyncAllToSupabase().finally(() => window.location.reload());
   },
 };
