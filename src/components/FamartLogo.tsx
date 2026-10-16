@@ -113,12 +113,12 @@ export const FamartLogo: React.FC<FamartLogoProps> = ({
             <span className={`font-bold tracking-tight ${textMap[size]} ${textColor}`}>
               FAMART
             </span>
-            <span className="text-xs uppercase font-semibold tracking-wider text-red-600 bg-red-50 border border-red-200/60 px-1.5 py-0.5 rounded">
+            <span className="text-xs uppercase font-semibold tracking-wider text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">
               CLINIC
             </span>
           </div>
-          <span className="text-[10px] tracking-wide text-slate-500 font-medium mt-0.5">
-            EMR & CLINICAL SYSTEM
+          <span className="text-[10px] tracking-wide text-slate-400 font-medium mt-0.5">
+            EMR &amp; CLINICAL SYSTEM
           </span>
         </div>
       )}

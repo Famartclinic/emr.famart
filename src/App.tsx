@@ -25,7 +25,7 @@ import { StorageService } from './services/storage';
 import { Lock, LogIn, ArrowRight, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
-  const { isAuthenticated, login, currentUser, allUsers } = useAuth();
+  const { isAuthenticated, login, currentUser, allUsers, canAccess } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState<string>('dashboard');
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
@@ -36,12 +36,27 @@ const MainLayout: React.FC = () => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginError, setLoginError] = useState(false);
 
-  // Keyboard shortcut Cmd+K or Ctrl+K for search
+  // Keyboard shortcuts: Cmd/Ctrl+K opens search; "/" focuses search outside form fields
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsSearchOpen(true);
+        return;
+      }
+
+      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const target = e.target as HTMLElement | null;
+        const isTyping =
+          !!target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.tagName === 'SELECT' ||
+            target.isContentEditable);
+        if (!isTyping) {
+          e.preventDefault();
+          setIsSearchOpen(true);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -75,36 +90,36 @@ const MainLayout: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-800">
+        <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200">
           <div className="p-8 bg-slate-950 border-b border-slate-800 text-center">
             <div className="flex justify-center mb-3">
               <FamartLogo size="lg" textColor="text-white" />
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Secure Electronic Medical Records & Clinic Management
+              Secure Electronic Medical Records &amp; Clinic Management
             </p>
-            <div className="text-[11px] font-mono text-blue-400 mt-1">
-              https://emr.famartclinic.co.ke
+            <div className="code-ref text-blue-400 mt-2">
+              emr.famartclinic.co.ke
             </div>
           </div>
 
           <div className="p-8 space-y-5 text-xs">
             <div>
-              <label className="block text-slate-700 font-semibold mb-1">
-                Select Staff Account to Sign In:
+              <label className="block text-slate-600 font-semibold mb-1">
+                Select staff account to continue
               </label>
               <div className="space-y-2 mt-2">
                 {allUsers.map((u) => (
                   <button
                     key={u.id}
                     onClick={() => login(u.email)}
-                    className="w-full text-left p-2.5 rounded-lg border border-slate-200 hover:border-red-600 hover:bg-red-50/40 flex items-center justify-between transition-colors cursor-pointer group"
+                    className="w-full text-left p-2.5 rounded-lg border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 flex items-center justify-between transition-colors cursor-pointer group"
                   >
                     <div>
-                      <div className="font-bold text-slate-900 group-hover:text-red-700">{u.name}</div>
+                      <div className="font-semibold text-slate-900 group-hover:text-blue-700">{u.name}</div>
                       <div className="text-[11px] text-slate-500">{u.title} ({u.role.replace('_', ' ')})</div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-red-600 transition-transform group-hover:translate-x-0.5" />
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-transform group-hover:translate-x-0.5" />
                   </button>
                 ))}
               </div>
@@ -140,8 +155,8 @@ const MainLayout: React.FC = () => {
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {/* RBAC Route Guard: If role cannot access this module, show Access Restricted card */}
-          {activeView !== 'dashboard' && activeView !== 'patient_detail' && !useAuth().canAccess(activeView) ? (
-            <div className="bg-white rounded-xl border border-red-200 p-8 shadow-xs text-center max-w-lg mx-auto my-12 space-y-3">
+          {activeView !== 'dashboard' && activeView !== 'patient_detail' && !canAccess(activeView) ? (
+            <div className="bg-white rounded-xl border border-red-200 p-8 shadow-sm text-center max-w-lg mx-auto my-12 space-y-3">
               <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto">
                 <ShieldAlert className="w-6 h-6" />
               </div>

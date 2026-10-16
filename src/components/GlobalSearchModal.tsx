@@ -24,6 +24,15 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const filtered = patients.filter((p) => {
@@ -46,13 +55,13 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
       >
         {/* Search Input Bar */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-200 bg-slate-50/50">
-          <Search className="w-5 h-5 text-red-600 shrink-0" />
+          <Search className="w-5 h-5 text-slate-400 shrink-0" />
           <input
             type="text"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search patient by name, patient number (FAM-2026-...), phone, or national ID..."
+            placeholder="Search by name, patient number, phone, or national ID…"
             className="w-full text-sm bg-transparent border-none outline-none text-slate-800 placeholder:text-slate-400 font-medium"
           />
           {query && (

@@ -147,9 +147,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-30 shadow-xs">
+    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between gap-3 px-4 lg:px-6 sticky top-0 z-30">
       {/* Zone 1: Breadcrumbs & Mobile Toggle */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onToggleSidebar}
           className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg"
@@ -158,38 +158,39 @@ export const TopBar: React.FC<TopBarProps> = ({
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="hidden sm:flex items-center gap-2 text-sm">
-          <span className="font-semibold text-red-700 tracking-tight flex items-center gap-1.5">
-            <Building2 className="w-4 h-4 text-red-600" />
+        <div className="hidden sm:flex items-center gap-2 text-sm min-w-0">
+          <span className="font-semibold text-slate-900 tracking-tight flex items-center gap-1.5 shrink-0">
+            <Building2 className="w-4 h-4 text-blue-600" />
             Famart Clinic
           </span>
           <span className="text-slate-300">/</span>
-          <span className="font-medium text-slate-800">{formatViewTitle(activeView)}</span>
+          <span className="font-medium text-slate-500 truncate">{formatViewTitle(activeView)}</span>
         </div>
       </div>
 
-      {/* Zone 2: Global Search Trigger */}
-      <div className="flex items-center gap-3 flex-1 max-w-md mx-4">
+      {/* Zone 2: Global patient search trigger */}
+      <div className="flex items-center gap-3 flex-1 max-w-lg mx-2 sm:mx-4">
         <button
           onClick={onOpenSearch}
-          className="w-full flex items-center justify-between px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-500 text-xs transition-colors group cursor-pointer"
+          title="Search patients (press / or ⌘K)"
+          className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-slate-500 text-xs transition-colors group cursor-pointer"
         >
-          <span className="flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-red-600 transition-colors" />
-            <span className="truncate">Search patient by name, FAM-2026-..., or phone...</span>
+          <span className="flex items-center gap-2 truncate">
+            <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
+            <span className="truncate">Search patients, phone, or visit ref…</span>
           </span>
-          <kbd className="hidden md:inline-flex items-center gap-0.5 text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-500 font-mono">
-            ⌘K
+          <kbd className="hidden md:inline-flex items-center justify-center min-w-5 h-5 text-[10px] bg-white border border-slate-200 px-1.5 rounded text-slate-500 font-medium">
+            /
           </kbd>
         </button>
       </div>
 
-      {/* Zone 3: Live Time & Role Switcher */}
-      <div className="flex items-center gap-3 shrink-0">
+      {/* Zone 3: Live time, alerts & profile */}
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Nairobi Time Badge */}
-        <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 font-mono">
-          <Clock className="w-3.5 h-3.5 text-blue-600" />
-          <span className="font-medium">{currentTime}</span>
+        <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
+          <Clock className="w-3.5 h-3.5 text-slate-400" />
+          <span className="font-semibold tabular-nums">{currentTime}</span>
           <span className="text-[10px] text-slate-400">EAT</span>
         </div>
 
@@ -204,22 +205,22 @@ export const TopBar: React.FC<TopBarProps> = ({
             title="Real-time clinical alerts and lab results"
             aria-label="Clinical notifications"
           >
-            <Bell className="w-4 h-4 text-slate-700" />
+            <Bell className="w-4 h-4 text-slate-600" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 flex items-center justify-center min-w-4 h-4 px-1 text-[9px] font-bold text-white bg-red-600 rounded-full animate-pulse">
+              <span className="absolute top-1 right-1 flex items-center justify-center min-w-4 h-4 px-1 text-[9px] font-bold text-white bg-red-600 rounded-full">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
 
           {notifMenuOpen && (
-            <div className="absolute right-0 mt-1.5 w-80 sm:w-96 bg-white rounded-xl shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95 overflow-hidden">
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50 overflow-hidden">
               <div className="px-3.5 py-2 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-red-600" />
-                  <span className="text-xs font-bold text-slate-900">Clinical Alerts & Notifications</span>
+                  <Bell className="w-4 h-4 text-slate-500" />
+                  <span className="text-xs font-semibold text-slate-900">Alerts</span>
                   {unreadCount > 0 && (
-                    <span className="px-1.5 py-0.2 bg-red-100 text-red-700 rounded-full text-[10px] font-bold">
+                    <span className="px-1.5 py-0.5 bg-red-50 text-red-700 border border-red-100 rounded-full text-[10px] font-semibold tabular-nums">
                       {unreadCount} new
                     </span>
                   )}
@@ -227,7 +228,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllRead}
-                    className="text-[11px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium cursor-pointer"
+                    className="text-[11px] text-blue-600 hover:text-blue-700 flex items-center gap-1 font-medium cursor-pointer"
                   >
                     <CheckCheck className="w-3.5 h-3.5" />
                     Mark all read
@@ -236,16 +237,16 @@ export const TopBar: React.FC<TopBarProps> = ({
               </div>
 
               {/* Filter tabs */}
-              <div className="flex items-center px-3 pt-2 gap-2 text-[11px] border-b border-slate-100 pb-1.5">
+              <div className="flex items-center px-3 pt-2 gap-2 text-[11px] border-b border-slate-100 pb-2">
                 <button
                   onClick={() => setNotifFilter('all')}
-                  className={`px-2 py-0.5 rounded font-medium cursor-pointer ${notifFilter === 'all' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                  className={`px-2 py-0.5 rounded-md font-medium cursor-pointer ${notifFilter === 'all' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}
                 >
                   All ({notifications.length})
                 </button>
                 <button
                   onClick={() => setNotifFilter('unread')}
-                  className={`px-2 py-0.5 rounded font-medium cursor-pointer ${notifFilter === 'unread' ? 'bg-red-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                  className={`px-2 py-0.5 rounded-md font-medium cursor-pointer ${notifFilter === 'unread' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'}`}
                 >
                   Unread ({unreadCount})
                 </button>
@@ -267,7 +268,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                         key={notif.id}
                         onClick={() => handleNotificationClick(notif)}
                         className={`p-3 text-left transition-colors cursor-pointer hover:bg-slate-50 flex items-start gap-2.5 ${
-                          !notif.read ? 'bg-red-50/40' : ''
+                          !notif.read ? 'bg-blue-50/30' : ''
                         }`}
                       >
                         <div className="p-1.5 rounded-lg shrink-0 mt-0.5 bg-slate-100">
@@ -281,10 +282,10 @@ export const TopBar: React.FC<TopBarProps> = ({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1 mb-0.5">
-                            <span className="text-[11px] font-bold text-slate-900 truncate">
+                            <span className="text-[11px] font-semibold text-slate-900 truncate">
                               {notif.title}
                             </span>
-                            <span className="text-[10px] text-slate-400 shrink-0 font-mono">
+                            <span className="text-[10px] text-slate-400 shrink-0 tabular-nums">
                               {notif.timestamp}
                             </span>
                           </div>
@@ -298,7 +299,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                           )}
                         </div>
                         {!notif.read && (
-                          <span className="w-2 h-2 rounded-full bg-red-600 shrink-0 mt-1.5"></span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0 mt-1.5"></span>
                         )}
                       </div>
                     ))
@@ -315,28 +316,25 @@ export const TopBar: React.FC<TopBarProps> = ({
               setRoleMenuOpen(!roleMenuOpen);
               if (notifMenuOpen) setNotifMenuOpen(false);
             }}
-            className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 transition-colors"
-            title="Switch staff account or test different roles"
+            className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 transition-colors cursor-pointer"
+            title="Switch staff account"
           >
             {getRoleIcon(currentUser.role)}
             <div className="text-left hidden md:block">
               <div className="font-semibold text-slate-900 leading-tight">{currentUser.name}</div>
               <div className="text-[10px] text-slate-500">{currentUser.title}</div>
             </div>
-            <span className={`text-[10px] px-1.5 py-0.2 border rounded font-semibold uppercase tracking-wider ${getRoleBadgeClass(currentUser.role)}`}>
+            <span className={`text-[10px] px-1.5 py-0.5 border rounded font-semibold uppercase tracking-wider ${getRoleBadgeClass(currentUser.role)}`}>
               {currentUser.role.replace('_', ' ')}
             </span>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
 
           {roleMenuOpen && (
-            <div className="absolute right-0 mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95">
+            <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
               <div className="px-3 py-1.5 border-b border-slate-100 mb-1">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Switch Active Role (RBAC Testing)
-                </p>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  Select a staff persona to test module permissions:
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                  Switch account
                 </p>
               </div>
 
@@ -348,8 +346,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                       switchUser(user.id);
                       setRoleMenuOpen(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-50 transition-colors ${
-                      user.id === currentUser.id ? 'bg-red-50/60 font-semibold text-red-900' : 'text-slate-700'
+                    className={`w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-50 transition-colors cursor-pointer ${
+                      user.id === currentUser.id ? 'bg-blue-50/70 font-semibold text-blue-900' : 'text-slate-700'
                     }`}
                   >
                     <div className="flex items-center gap-2">

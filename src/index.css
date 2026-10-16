@@ -2,21 +2,56 @@
 
 @layer base {
   :root {
-    --famart-red: #c8102e;
-    --famart-red-dark: #991b1b;
-    --famart-red-deep: #7f1d1d;
-    --famart-blue: #1d4ed8;
-    --famart-blue-dark: #1e40af;
-    --famart-blue-light: #3b82f6;
+    --famart-navy: #0f172a;
+    --famart-navy-soft: #1e293b;
+    --famart-accent: #2563eb;
+    --famart-accent-strong: #1d4ed8;
+    --famart-emerald: #059669;
+    --famart-danger: #dc2626;
+    --famart-surface: #f8fafc;
+    --famart-ink: #0f172a;
+    --famart-muted: #64748b;
+    --famart-line: #e2e8f0;
   }
 
   body {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Inter', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
   }
 
-  .font-mono, .tabular-nums {
-    font-family: 'JetBrains Mono', monospace;
+  /* Numeric figures (metrics, currency, counts) stay in the sans-serif stack with
+     tabular alignment. Monospace is reserved for patient IDs and system reference codes. */
+  .tabular-nums {
+    font-family: inherit;
     font-variant-numeric: tabular-nums;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Shared surface for panels, widgets and metric cards */
+  .card {
+    @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+  }
+
+  /* Reserved for identifiers: patient numbers, visit refs, system codes */
+  .code-ref {
+    @apply font-mono text-[11px] tracking-tight;
+  }
+
+  /* Primary interactive accent */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 cursor-pointer;
+  }
+
+  /* Reserved strictly for urgent triage / emergency / destructive actions */
+  .btn-emergency {
+    @apply inline-flex items-center gap-2 rounded-lg bg-red-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-red-700 cursor-pointer;
   }
 }
 

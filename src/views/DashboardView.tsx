@@ -4,16 +4,11 @@ import {
   Activity,
   Stethoscope,
   FlaskConical,
-  Pill,
   CreditCard,
-  Receipt,
   UserPlus,
   ArrowRight,
-  TrendingUp,
   Clock,
-  CheckCircle2,
   AlertTriangle,
-  ChevronRight,
   Lock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -66,324 +61,273 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const totalBilled = invoices.reduce((acc, inv) => acc + (inv.totalKes || 0), 0);
   const outstandingBal = invoices.reduce((acc, inv) => acc + (inv.balanceKes || 0), 0);
 
-  const getStageBadge = (stage: string) => {
+  const stageCounts = {
+    reception: queue.filter(q => q.stage === 'reception').length,
+    triage: queue.filter(q => q.stage === 'triage').length,
+    consultation: queue.filter(q => q.stage === 'consultation').length,
+    laboratory: queue.filter(q => q.stage === 'laboratory').length,
+    pharmacy: queue.filter(q => q.stage === 'pharmacy').length,
+    billing: queue.filter(q => q.stage === 'billing').length,
+  };
+  const queueTotal = Object.values(stageCounts).reduce((a, b) => a + b, 0);
+
+  const stageMeta = [
+    { key: 'reception', label: 'Reception', dot: 'bg-slate-400' },
+    { key: 'triage', label: 'Triage', dot: 'bg-emerald-500' },
+    { key: 'consultation', label: 'Consultation', dot: 'bg-blue-500' },
+    { key: 'laboratory', label: 'Laboratory', dot: 'bg-violet-500' },
+    { key: 'pharmacy', label: 'Pharmacy', dot: 'bg-teal-500' },
+    { key: 'billing', label: 'Billing', dot: 'bg-indigo-500' },
+  ] as const;
+
+  const getStageDot = (stage: string) => {
     switch (stage) {
-      case 'reception': return 'bg-slate-100 text-slate-700 border-slate-200';
-      case 'triage': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'consultation': return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'laboratory': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'pharmacy': return 'bg-teal-50 text-teal-700 border-teal-200';
-      case 'billing': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+      case 'reception': return 'bg-slate-400';
+      case 'triage': return 'bg-emerald-500';
+      case 'consultation': return 'bg-blue-500';
+      case 'laboratory': return 'bg-violet-500';
+      case 'pharmacy': return 'bg-teal-500';
+      case 'billing': return 'bg-indigo-500';
+      default: return 'bg-slate-400';
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-xl p-5 sm:p-6 text-white shadow-xs border border-slate-800">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-red-400 mb-1">
-              <span>Famart Clinic Outpatient EMR</span>
-              <span>·</span>
-              <span>Nairobi Facility</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
-              Good day, {currentUser.name}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-              Real-time clinical flow, patient queues, and department workloads for today at Famart Clinic.
-            </p>
-          </div>
+      {/* Page header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+            Clinical Overview · Nairobi Facility
+          </p>
+          <h1 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+            Good day, {currentUser.name}
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+            Today's clinical flow, patient queues and department workload.
+          </p>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            {canAccess('registration') && (
-              <button
-                onClick={onOpenRegisterModal}
-                className="inline-flex items-center gap-2 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-              >
-                <UserPlus className="w-4 h-4" />
-                Register New Patient
-              </button>
-            )}
-
-            <button
-              onClick={() => onNavigate('appointments')}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold border border-slate-700 transition-colors cursor-pointer"
-            >
-              <Clock className="w-4 h-4 text-blue-400" />
-              Manage Queue
+        <div className="flex flex-wrap items-center gap-2.5">
+          {canAccess('registration') && (
+            <button onClick={onOpenRegisterModal} className="btn-primary">
+              <UserPlus className="w-4 h-4" />
+              Register Patient
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Real-time Summary Cards Section (Pulling data from Centralized Billing System) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 sm:p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3.5 mb-4 border-b border-slate-100 gap-2">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-red-600" />
-              Real-Time Centralized Operations & Billing Summary
-            </h2>
-            <p className="text-xs text-slate-500">
-              Live automated data synchronized across Triage, Consultation, Laboratory, Pharmacy, and Invoicing.
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 self-start sm:self-auto">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-[11px] font-mono font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-              Live Billing Sync
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card 1: Today's Total Revenue */}
-          <div className="p-4 rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50/50 to-white shadow-2xs">
-            <div className="flex items-center justify-between text-xs text-emerald-900 font-semibold mb-1">
-              <span className="flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-emerald-600" />
-                Today's Total Revenue
-              </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                Central Billing
-              </span>
-            </div>
-            {canAccess('billing') ? (
-              <>
-                <div className="text-2xl font-bold font-mono text-emerald-800 tabular-nums mt-1">
-                  KES {todayRevenue.toLocaleString()}
-                </div>
-                <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-                  <span>M-Pesa, Cash & Insurance</span>
-                  <span className="font-mono text-slate-700">Billed: KES {totalBilled.toLocaleString()}</span>
-                </div>
-              </>
-            ) : (
-              <div className="mt-2 p-2 bg-slate-50 border border-slate-200 rounded text-[11px] text-slate-500 flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <span>Financial revenue restricted to Billing/Admin role</span>
-              </div>
-            )}
-          </div>
-
-          {/* Card 2: Pending Invoices */}
-          <div
-            onClick={() => canAccess('billing') && onNavigate('billing')}
-            className={`p-4 rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50/50 to-white shadow-2xs ${canAccess('billing') ? 'cursor-pointer hover:border-amber-300 transition-colors' : ''}`}
-          >
-            <div className="flex items-center justify-between text-xs text-amber-900 font-semibold mb-1">
-              <span className="flex items-center gap-1.5">
-                <Receipt className="w-4 h-4 text-amber-600" />
-                Pending Invoices
-              </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
-                {pendingInvoicesCount} Pending
-              </span>
-            </div>
-            <div className="text-2xl font-bold font-mono text-amber-900 tabular-nums mt-1">
-              {pendingInvoicesCount} <span className="text-sm font-normal text-slate-500">invoice{pendingInvoicesCount !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-              <span>Unpaid / Partial settlement</span>
-              {canAccess('billing') ? (
-                <span className="font-mono font-bold text-red-600">Bal: KES {outstandingBal.toLocaleString()}</span>
-              ) : (
-                <span className="text-amber-700 font-medium">Awaiting payment</span>
-              )}
-            </div>
-          </div>
-
-          {/* Card 3: Active Patient Count */}
-          <div
+          )}
+          <button
             onClick={() => onNavigate('appointments')}
-            className="p-4 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50/50 to-white shadow-2xs cursor-pointer hover:border-blue-300 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 cursor-pointer"
           >
-            <div className="flex items-center justify-between text-xs text-blue-900 font-semibold mb-1">
-              <span className="flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-blue-600" />
-                Active Patient Count
-              </span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
-                In Clinic Flow
-              </span>
-            </div>
-            <div className="text-2xl font-bold font-mono text-blue-900 tabular-nums mt-1">
-              {activePatientCount} <span className="text-sm font-normal text-slate-500">active patient{activePatientCount !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-              <span>{waitingTriage} triage · {inConsultation} consult</span>
-              <span className="text-blue-700 font-medium">View live queue →</span>
-            </div>
-          </div>
+            <Clock className="w-4 h-4 text-slate-400" />
+            Manage Queue
+          </button>
         </div>
       </div>
 
-      {/* KPI Metric Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Total Patients */}
-        <div
-          onClick={() => onNavigate('patients')}
-          className="bg-white p-4 rounded-xl border border-slate-200 hover:border-slate-300 shadow-xs cursor-pointer transition-all hover:-translate-y-0.5"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium">Registered Patients</span>
-            <Users className="w-4 h-4 text-slate-400" />
-          </div>
-          <div className="text-2xl font-bold text-slate-900 font-mono tabular-nums">
-            {patients.length}
-          </div>
-          <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-            <span>Active records</span>
-            <span className="text-red-700 font-medium">View directory →</span>
-          </div>
-        </div>
-
-        {/* Waiting Triage */}
-        <div
-          onClick={() => onNavigate('triage')}
-          className="bg-white p-4 rounded-xl border border-slate-200 hover:border-slate-300 shadow-xs cursor-pointer transition-all hover:-translate-y-0.5"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium">Waiting for Triage</span>
-            <Activity className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="text-2xl font-bold text-emerald-600 font-mono tabular-nums">
-            {waitingTriage}
-          </div>
-          <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-            <span>Needs vitals check</span>
-            <span className="text-emerald-700 font-medium">Open triage →</span>
-          </div>
-        </div>
-
-        {/* Consultations */}
-        <div
-          onClick={() => onNavigate('consultation')}
-          className="bg-white p-4 rounded-xl border border-slate-200 hover:border-slate-300 shadow-xs cursor-pointer transition-all hover:-translate-y-0.5"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium">In Doctor Queue</span>
-            <Stethoscope className="w-4 h-4 text-blue-600" />
-          </div>
-          <div className="text-2xl font-bold text-blue-600 font-mono tabular-nums">
-            {inConsultation}
-          </div>
-          <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-            <span>Ready for doctor</span>
-            <span className="text-blue-700 font-medium">Open desk →</span>
-          </div>
-        </div>
-
-        {/* Pending Labs & Rx */}
-        <div
-          onClick={() => onNavigate('laboratory')}
-          className="bg-white p-4 rounded-xl border border-slate-200 hover:border-slate-300 shadow-xs cursor-pointer transition-all hover:-translate-y-0.5"
-        >
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-medium">Pending Labs / Rx</span>
-            <FlaskConical className="w-4 h-4 text-purple-600" />
-          </div>
-          <div className="text-2xl font-bold text-purple-600 font-mono tabular-nums">
-            {pendingLabs} <span className="text-xs font-normal text-slate-400">labs</span> · {pendingRx} <span className="text-xs font-normal text-slate-400">Rx</span>
-          </div>
-          <div className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
-            <span>Diagnostics pending</span>
-            <span className="text-purple-700 font-medium">Review labs →</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Financial strip for authorized users */}
-      {canAccess('billing') && (
-        <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700">
-              <CreditCard className="w-5 h-5" />
+      {/* Consolidated financial widget */}
+      {canAccess('billing') ? (
+        <div className="card p-5">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                Revenue Today
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
+                  KES {todayRevenue.toLocaleString()}
+                </span>
+                <span className="text-xs font-medium text-slate-500">collected</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                M-Pesa, cash and insurance settlements across all desks.
+              </p>
             </div>
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Today's Revenue Collections (M-Pesa & Cash)
-              </span>
-              <div className="text-xl font-bold text-slate-900 font-mono tabular-nums">
-                KES {todayRevenue.toLocaleString()}
+
+            <div className="grid grid-cols-3 divide-x divide-slate-100 border border-slate-200 rounded-lg overflow-hidden">
+              <div className="px-4 py-3">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Billed</div>
+                <div className="mt-1 text-sm font-semibold text-slate-900 tabular-nums">
+                  KES {totalBilled.toLocaleString()}
+                </div>
+              </div>
+              <div className="px-4 py-3">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Outstanding</div>
+                <div className={`mt-1 text-sm font-semibold tabular-nums ${outstandingBal > 0 ? 'text-red-600' : 'text-slate-900'}`}>
+                  KES {outstandingBal.toLocaleString()}
+                </div>
+              </div>
+              <div className="px-4 py-3">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Open invoices</div>
+                <div className="mt-1 text-sm font-semibold text-slate-900 tabular-nums">
+                  {pendingInvoicesCount}
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 text-xs">
-            <div>
-              <span className="text-slate-400">Total Billed:</span>
-              <div className="font-semibold text-slate-800 font-mono">KES {totalBilled.toLocaleString()}</div>
-            </div>
-            <div>
-              <span className="text-slate-400">Outstanding Balance:</span>
-              <div className="font-semibold text-red-600 font-mono">KES {outstandingBal.toLocaleString()}</div>
-            </div>
+          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+            <span className="text-[11px] text-slate-500">
+              Consultation, laboratory and pharmacy charges settle at the cashiering desk.
+            </span>
             <button
               onClick={() => onNavigate('billing')}
-              className="text-xs font-semibold text-red-700 hover:text-red-800 flex items-center gap-1 cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 shrink-0 cursor-pointer"
             >
-              Billing Ledger <ArrowRight className="w-3.5 h-3.5" />
+              Billing ledger <ArrowRight className="w-3.5 h-3.5" />
             </button>
+          </div>
+        </div>
+      ) : (
+        <div className="card p-5 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-lg bg-slate-100 text-slate-400 flex items-center justify-center shrink-0">
+            <Lock className="w-4 h-4" />
+          </span>
+          <div>
+            <div className="text-xs font-semibold text-slate-900">Financial summary</div>
+            <p className="text-xs text-slate-500">
+              Revenue and billing totals are visible to billing and administrator roles.
+            </p>
           </div>
         </div>
       )}
 
-      {/* Main 2-Column Content Split */}
+      {/* Operational metric strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* Active patients */}
+        <button
+          onClick={() => onNavigate('appointments')}
+          className="card p-4 text-left transition-all hover:border-slate-300 hover:shadow cursor-pointer"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-xs font-medium text-slate-500">Active Patients</span>
+            <span className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+              <Users className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
+            {activePatientCount}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">In clinic flow</div>
+        </button>
+
+        {/* Waiting triage */}
+        <button
+          onClick={() => onNavigate('triage')}
+          className="card p-4 text-left transition-all hover:border-slate-300 hover:shadow cursor-pointer"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-xs font-medium text-slate-500">Waiting Triage</span>
+            <span className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+              <Activity className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
+              {waitingTriage}
+            </span>
+            {waitingTriage > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 ring-1 ring-inset ring-red-100">
+                <AlertTriangle className="w-3 h-3" />
+                Urgent
+              </span>
+            )}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">Awaiting vitals assessment</div>
+        </button>
+
+        {/* Doctor queue */}
+        <button
+          onClick={() => onNavigate('consultation')}
+          className="card p-4 text-left transition-all hover:border-slate-300 hover:shadow cursor-pointer"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-xs font-medium text-slate-500">Doctor Queue</span>
+            <span className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+              <Stethoscope className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
+            {inConsultation}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">Ready for consultation</div>
+        </button>
+
+        {/* Pending labs & prescriptions */}
+        <button
+          onClick={() => onNavigate('laboratory')}
+          className="card p-4 text-left transition-all hover:border-slate-300 hover:shadow cursor-pointer"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-xs font-medium text-slate-500">Pending Labs / Rx</span>
+            <span className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+              <FlaskConical className="w-3.5 h-3.5" />
+            </span>
+          </div>
+          <div className="mt-2 flex items-baseline gap-1.5">
+            <span className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{pendingLabs}</span>
+            <span className="text-[11px] text-slate-500">labs</span>
+            <span className="text-slate-300">·</span>
+            <span className="text-2xl font-bold tracking-tight text-slate-900 tabular-nums">{pendingRx}</span>
+            <span className="text-[11px] text-slate-500">Rx</span>
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">Diagnostics and dispensing</div>
+        </button>
+      </div>
+
+      {/* Queue, schedule and desk activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Active Clinical Patient Queue */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+        {/* Active patient queue */}
+        <div className="lg:col-span-2 card overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Active Patient Queue</h2>
-              <p className="text-xs text-slate-500">Patients currently progressing through Famart Clinic stages</p>
+              <h2 className="text-sm font-semibold text-slate-900">Active Patient Queue</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Patients progressing through clinic stages</p>
             </div>
             <button
               onClick={() => onNavigate('appointments')}
-              className="text-xs font-semibold text-red-700 hover:text-red-800 flex items-center gap-1"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 shrink-0 cursor-pointer"
             >
-              Full Queue View <ArrowRight className="w-3.5 h-3.5" />
+              Full queue <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="divide-y divide-slate-100 overflow-x-auto">
+          <div className="divide-y divide-slate-100">
             {queue.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 text-xs">
+              <div className="py-14 text-center text-xs text-slate-400">
                 No patients currently in the active queue.
               </div>
             ) : (
               queue.slice(0, 6).map((q) => (
-                <div
-                  key={q.id}
-                  className="p-3.5 sm:px-5 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors"
-                >
+                <div key={q.id} className="px-5 py-3 flex items-center justify-between gap-3 hover:bg-slate-50/70 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-semibold shrink-0">
                       {q.patientName.charAt(0)}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span
+                      <div className="flex items-center gap-2 min-w-0">
+                        <button
                           onClick={() => onNavigate('patient_detail', q.patientId)}
-                          className="font-semibold text-xs sm:text-sm text-slate-900 hover:text-red-700 cursor-pointer truncate"
+                          className="text-sm font-semibold text-slate-900 hover:text-blue-700 cursor-pointer truncate"
                         >
                           {q.patientName}
-                        </span>
-                        <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded shrink-0">
+                        </button>
+                        <span className="code-ref text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded shrink-0">
                           {q.patientNumber}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-500 truncate mt-0.5">
-                        {q.chiefComplaint || 'Consultation visit'} · Ref: {q.visitNumber}
+                      <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                        {q.chiefComplaint || 'Consultation visit'}
+                        <span className="text-slate-300"> · </span>
+                        <span className="code-ref text-slate-400">{q.visitNumber}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className={`text-[11px] px-2 py-0.5 rounded border uppercase font-bold tracking-wider ${getStageBadge(q.stage)}`}>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md capitalize">
+                      <span className={`w-1.5 h-1.5 rounded-full ${getStageDot(q.stage)}`} />
                       {q.stage}
                     </span>
 
@@ -395,9 +339,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         else if (q.stage === 'pharmacy') onNavigate('pharmacy', q.patientId);
                         else onNavigate('patient_detail', q.patientId);
                       }}
-                      className="px-2.5 py-1 text-xs font-medium text-slate-700 hover:text-white bg-slate-100 hover:bg-red-700 rounded-md transition-colors"
+                      className="px-2.5 py-1 text-xs font-semibold text-slate-600 border border-slate-200 rounded-md transition-colors hover:bg-blue-600 hover:border-blue-600 hover:text-white cursor-pointer"
                     >
-                      Action →
+                      Open
                     </button>
                   </div>
                 </div>
@@ -406,123 +350,67 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
 
-        {/* Right 1 Col: Today's Appointments & Quick Links */}
+        {/* Right column */}
         <div className="space-y-6">
-          {/* Today's Schedule Card */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-            <div className="px-4 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-600" />
-                Today's Bookings
-              </h2>
-              <span className="text-xs font-mono font-bold text-slate-500">{appointments.length} Total</span>
+          {/* Queue status breakdown */}
+          <div className="card overflow-hidden">
+            <div className="px-4 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900">Queue Status</h2>
+              <span className="text-xs text-slate-500 tabular-nums">{queueTotal} in flow</span>
             </div>
-
-            <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-              {appointments.slice(0, 5).map((apt) => (
-                <div key={apt.id} className="p-3 text-xs hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-900">{apt.patientName}</span>
-                    <span className="font-mono text-blue-700 font-bold">{apt.appointmentTime}</span>
-                  </div>
-                  <div className="text-slate-500 text-[11px] mt-0.5 flex items-center justify-between">
-                    <span>{apt.reason}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded font-medium ${
-                      apt.status === 'completed'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : apt.status === 'checked_in'
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-amber-50 text-amber-700'
-                    }`}>
-                      {apt.status.replace('_', ' ')}
+            <div className="p-4 space-y-3">
+              {stageMeta.map((row) => {
+                const value = stageCounts[row.key];
+                const pct = queueTotal > 0 ? Math.round((value / queueTotal) * 100) : 0;
+                return (
+                  <div key={row.key} className="flex items-center gap-3">
+                    <span className="w-24 shrink-0 text-[11px] font-medium text-slate-600">{row.label}</span>
+                    <span className="flex-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                      <span className={`block h-full rounded-full ${row.dot}`} style={{ width: `${pct}%` }} />
+                    </span>
+                    <span className="w-6 text-right text-[11px] font-semibold text-slate-700 tabular-nums">
+                      {value}
                     </span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          {/* Quick Department Portals */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-              Direct Clinical Desks
-            </h3>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {canAccess('triage') && (
-                <button
-                  onClick={() => onNavigate('triage')}
-                  className="p-2.5 rounded-lg border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 text-left transition-colors cursor-pointer"
-                >
-                  <Activity className="w-4 h-4 text-emerald-600 mb-1" />
-                  <div className="font-semibold text-slate-900">Triage Station</div>
-                  <div className="text-[10px] text-slate-500">Record vitals & triage</div>
-                </button>
-              )}
+          {/* Today's bookings */}
+          <div className="card overflow-hidden">
+            <div className="px-4 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-slate-400" />
+                Today's Bookings
+              </h2>
+              <span className="text-xs text-slate-500 tabular-nums">{appointments.length} scheduled</span>
+            </div>
 
-              {canAccess('procedures') && (
-                <button
-                  onClick={() => onNavigate('procedures')}
-                  className="p-2.5 rounded-lg border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50 text-left transition-colors cursor-pointer"
-                >
-                  <Activity className="w-4 h-4 text-emerald-600 mb-1" />
-                  <div className="font-semibold text-slate-900">Nursing Procedures</div>
-                  <div className="text-[10px] text-slate-500">Dressing, injections & care</div>
-                </button>
-              )}
-
-              {canAccess('consultation') && (
-                <button
-                  onClick={() => onNavigate('consultation')}
-                  className="p-2.5 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition-colors cursor-pointer"
-                >
-                  <Stethoscope className="w-4 h-4 text-blue-600 mb-1" />
-                  <div className="font-semibold text-slate-900">Doctor Desk</div>
-                  <div className="text-[10px] text-slate-500">SOAP notes & orders</div>
-                </button>
-              )}
-
-              {canAccess('laboratory') && (
-                <button
-                  onClick={() => onNavigate('laboratory')}
-                  className="p-2.5 rounded-lg border border-slate-200 hover:border-purple-300 hover:bg-purple-50/50 text-left transition-colors cursor-pointer"
-                >
-                  <FlaskConical className="w-4 h-4 text-purple-600 mb-1" />
-                  <div className="font-semibold text-slate-900">Lab Orders</div>
-                  <div className="text-[10px] text-slate-500">Enter & verify results</div>
-                </button>
-              )}
-
-              {canAccess('pharmacy') && (
-                <button
-                  onClick={() => onNavigate('pharmacy')}
-                  className="p-2.5 rounded-lg border border-slate-200 hover:border-teal-300 hover:bg-teal-50/50 text-left transition-colors cursor-pointer"
-                >
-                  <Pill className="w-4 h-4 text-teal-600 mb-1" />
-                  <div className="font-semibold text-slate-900">Pharmacy</div>
-                  <div className="text-[10px] text-slate-500">Dispense & inventory</div>
-                </button>
-              )}
-
-              {canAccess('reception_billing') && (
-                <button
-                  onClick={() => onNavigate('reception_billing')}
-                  className="p-2.5 rounded-lg border border-slate-200 hover:border-red-300 hover:bg-red-50/50 text-left transition-colors cursor-pointer"
-                >
-                  <Receipt className="w-4 h-4 text-red-600 mb-1" />
-                  <div className="font-semibold text-slate-900">Consultation Fee Desk</div>
-                  <div className="text-[10px] text-slate-500">Front desk receipts</div>
-                </button>
-              )}
-
-              {canAccess('billing') && (
-                <button
-                  onClick={() => onNavigate('billing')}
-                  className="p-2.5 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 text-left transition-colors cursor-pointer"
-                >
-                  <CreditCard className="w-4 h-4 text-indigo-600 mb-1" />
-                  <div className="font-semibold text-slate-900">Billing & Invoices</div>
-                  <div className="text-[10px] text-slate-500">Financial cashiering</div>
-                </button>
+            <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+              {appointments.length === 0 ? (
+                <div className="py-10 text-center text-xs text-slate-400">No appointments booked today.</div>
+              ) : (
+                appointments.slice(0, 5).map((apt) => (
+                  <div key={apt.id} className="px-4 py-2.5 text-xs hover:bg-slate-50/70 transition-colors">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-slate-900 truncate">{apt.patientName}</span>
+                      <span className="text-slate-600 font-semibold tabular-nums shrink-0">{apt.appointmentTime}</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="text-[11px] text-slate-500 truncate">{apt.reason}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium capitalize shrink-0 ${
+                        apt.status === 'completed'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : apt.status === 'checked_in'
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'bg-amber-50 text-amber-700'
+                      }`}>
+                        {apt.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
