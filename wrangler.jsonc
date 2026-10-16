@@ -1,0 +1,18 @@
+{
+  // Cloudflare Worker that serves the built EMR as static assets.
+  // Deploy with: wrangler deploy
+  "name": "emr-famart",
+  "compatibility_date": "2026-10-12",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist",
+    // Client-side routing: unknown paths fall back to index.html.
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    {
+      "pattern": "*emr.famartclinic.co.ke/*",
+      "zone_name": "famartclinic.co.ke"
+    }
+  ]
+}
