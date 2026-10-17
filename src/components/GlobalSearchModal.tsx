@@ -48,7 +48,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-slate-900/60 backdrop-blur-xs p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-[calc(5rem_+_env(safe-area-inset-top,0px))] bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
       <div
         className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
@@ -81,7 +81,7 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
         </div>
 
         {/* Results List */}
-        <div className="max-h-[420px] overflow-y-auto divide-y divide-slate-100 p-2">
+        <div className="max-h-[min(420px,calc(100dvh_-_10rem))] overflow-y-auto divide-y divide-slate-100 p-2">
           {filtered.length === 0 ? (
             <div className="py-12 text-center text-slate-500">
               <User className="w-8 h-8 text-slate-300 mx-auto mb-2" />

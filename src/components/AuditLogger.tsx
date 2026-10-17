@@ -215,7 +215,7 @@ export const AuditLogger: React.FC<AuditLoggerProps> = ({ currentModule, classNa
       {/* Audit Log Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[720px] text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold">
               <tr>
                 <th className="py-2.5 px-3">Timestamp (EAT)</th>

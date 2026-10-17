@@ -21,6 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import { UserRole, AppNotification } from '../types/emr';
 import { StorageService } from '../services/storage';
 import { isSupabaseConfigured } from '../services/supabaseClient';
+import { InstallAppButton } from './InstallAppButton';
 
 interface TopBarProps {
   onToggleSidebar: () => void;
@@ -148,12 +149,12 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between gap-3 px-4 lg:px-6 sticky top-0 z-30">
+    <header className="h-[calc(4rem_+_env(safe-area-inset-top,0px))] pt-safe px-3 sm:px-4 lg:px-6 bg-white border-b border-slate-200 flex items-center justify-between gap-2 sm:gap-3 sticky top-0 z-30">
       {/* Zone 1: Breadcrumbs & Mobile Toggle */}
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg"
+          className="lg:hidden p-2 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg cursor-pointer"
           aria-label="Toggle navigation"
         >
           <Menu className="w-5 h-5" />
@@ -170,15 +171,16 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Zone 2: Global patient search trigger */}
-      <div className="flex items-center gap-3 flex-1 max-w-lg mx-2 sm:mx-4">
+      <div className="flex items-center gap-3 flex-1 max-w-lg mx-1 sm:mx-4 min-w-0">
         <button
           onClick={onOpenSearch}
           title="Search patients (press / or ⌘K)"
-          className="w-full flex items-center justify-between px-3.5 py-2 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-slate-500 text-xs transition-colors group cursor-pointer"
+          className="w-full flex items-center justify-between gap-2 px-3 py-2 sm:px-3.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-slate-500 text-xs transition-colors group cursor-pointer"
         >
-          <span className="flex items-center gap-2 truncate">
-            <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
-            <span className="truncate">Search patients, phone, or visit ref…</span>
+          <span className="flex items-center gap-2 min-w-0">
+            <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors shrink-0" />
+            <span className="truncate hidden sm:inline">Search patients, phone, or visit ref…</span>
+            <span className="truncate sm:hidden">Search patients</span>
           </span>
           <kbd className="hidden md:inline-flex items-center justify-center min-w-5 h-5 text-[10px] bg-white border border-slate-200 px-1.5 rounded text-slate-500 font-medium">
             /
@@ -187,7 +189,9 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Zone 3: Live time, alerts & profile */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 shrink-0">
+        {/* Install as desktop / mobile app */}
+        <InstallAppButton variant="topbar" />
         {/* Nairobi Time Badge */}
         <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
           <Clock className="w-3.5 h-3.5 text-slate-400" />
@@ -215,8 +219,8 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
 
           {notifMenuOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50 overflow-hidden">
-              <div className="px-3.5 py-2 border-b border-slate-100 flex items-center justify-between">
+            <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] sm:w-96 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50 overflow-hidden">
+              <div className="px-3 sm:px-3.5 py-2 border-b border-slate-100 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Bell className="w-4 h-4 text-slate-500" />
                   <span className="text-xs font-semibold text-slate-900">Alerts</span>
@@ -317,7 +321,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               setRoleMenuOpen(!roleMenuOpen);
               if (notifMenuOpen) setNotifMenuOpen(false);
             }}
-            className="flex items-center gap-2 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-2 sm:px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 transition-colors cursor-pointer"
             title="Switch staff account"
           >
             {getRoleIcon(currentUser.role)}
@@ -325,14 +329,14 @@ export const TopBar: React.FC<TopBarProps> = ({
               <div className="font-semibold text-slate-900 leading-tight">{currentUser.name}</div>
               <div className="text-[10px] text-slate-500">{currentUser.title}</div>
             </div>
-            <span className={`text-[10px] px-1.5 py-0.5 border rounded font-semibold uppercase tracking-wider ${getRoleBadgeClass(currentUser.role)}`}>
+            <span className={`hidden sm:inline-block text-[10px] px-1.5 py-0.5 border rounded font-semibold uppercase tracking-wider ${getRoleBadgeClass(currentUser.role)}`}>
               {currentUser.role.replace('_', ' ')}
             </span>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
 
           {roleMenuOpen && (
-            <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
+            <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
               <div className="px-3 py-1.5 border-b border-slate-100 mb-1">
                 <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                   {isSupabaseConfigured ? 'Signed in as' : 'Switch account'}

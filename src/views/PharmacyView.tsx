@@ -334,8 +334,8 @@ export const PharmacyView: React.FC<PharmacyViewProps> = ({
                 <div>
                   <h3 className="font-bold text-slate-900 mb-2">Prescribed Medications & Dispensing Quantities</h3>
 
-                  <div className="border border-slate-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-left text-xs">
+                  <div className="border border-slate-200 rounded-lg overflow-x-auto">
+                    <table className="w-full min-w-[720px] text-left text-xs">
                       <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] border-b border-slate-200">
                         <tr>
                           <th className="py-2.5 px-3">Medication & Form</th>
@@ -451,7 +451,7 @@ export const PharmacyView: React.FC<PharmacyViewProps> = ({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full min-w-[720px] text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] border-b border-slate-200">
                 <tr>
                   <th className="py-2.5 px-4">Medicine Name & Formulation</th>
@@ -517,8 +517,8 @@ export const PharmacyView: React.FC<PharmacyViewProps> = ({
 
       {/* Restock Modal */}
       {isRestockOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="modal-overlay">
+          <div className="modal-panel max-w-lg">
             <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
               <h2 className="text-sm font-bold flex items-center gap-2">
                 <PackagePlus className="w-4 h-4 text-teal-400" />
@@ -530,7 +530,7 @@ export const PharmacyView: React.FC<PharmacyViewProps> = ({
             </div>
 
             <form onSubmit={handleRestockSubmit} className="p-5 space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">Generic Name *</label>
                   <input
@@ -554,7 +554,7 @@ export const PharmacyView: React.FC<PharmacyViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">Dosage Form</label>
                   <select
@@ -584,7 +584,7 @@ export const PharmacyView: React.FC<PharmacyViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">Quantity *</label>
                   <input
@@ -618,7 +618,7 @@ export const PharmacyView: React.FC<PharmacyViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">Batch Number</label>
                   <input

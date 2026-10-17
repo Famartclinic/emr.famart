@@ -204,7 +204,7 @@ export const NursingProceduresView: React.FC<NursingProceduresViewProps> = ({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[720px] text-left text-xs">
             <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[10px] border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">Ref / Date</th>
@@ -276,8 +276,8 @@ export const NursingProceduresView: React.FC<NursingProceduresViewProps> = ({
 
       {/* Perform Procedure Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="modal-overlay">
+          <div className="modal-panel max-w-lg">
             <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
               <h2 className="text-sm font-bold flex items-center gap-2">
                 <Bandage className="w-4 h-4 text-emerald-400" />

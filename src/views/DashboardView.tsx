@@ -145,7 +145,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </p>
             </div>
 
-            <div className="grid grid-cols-3 divide-x divide-slate-100 border border-slate-200 rounded-lg overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 border border-slate-200 rounded-lg overflow-hidden">
               <div className="px-4 py-3">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Billed</div>
                 <div className="mt-1 text-sm font-semibold text-slate-900 tabular-nums">

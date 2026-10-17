@@ -282,7 +282,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
       {/* Patient Table */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[720px] text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-semibold text-[11px]">
               <tr>
                 <th className="py-3 px-4">Patient ID / Name</th>
@@ -383,25 +383,26 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
 
       {/* Register New Patient Modal */}
       {isRegisterOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-slate-200 my-8 overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-              <div>
+        <div className="modal-overlay">
+          <div className="modal-panel max-w-2xl my-8 animate-in fade-in zoom-in-95">
+            <div className="px-4 sm:px-6 py-4 bg-slate-900 text-white flex items-start justify-between gap-3">
+              <div className="min-w-0">
                 <h2 className="text-base font-bold flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 text-red-400" />
+                  <UserPlus className="w-4 h-4 text-red-400 shrink-0" />
                   Register New Patient
                 </h2>
-                <p className="text-xs text-slate-400">Generates unique FAM-2026-XXXX record and opens initial visit queue.</p>
+                <p className="text-xs text-slate-400 hidden sm:block">Generates unique FAM-2026-XXXX record and opens initial visit queue.</p>
               </div>
               <button
                 onClick={() => setIsRegisterOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded"
+                aria-label="Close registration form"
+                className="text-slate-400 hover:text-white p-1 rounded shrink-0 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleRegisterSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto text-xs">
+            <form onSubmit={handleRegisterSubmit} className="p-4 sm:p-6 space-y-4 text-xs">
               {duplicateWarning && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />

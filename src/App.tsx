@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { FamartLogo } from './components/FamartLogo';
+import { InstallAppButton } from './components/InstallAppButton';
 
 // Views
 import { DashboardView } from './views/DashboardView';
@@ -160,9 +161,9 @@ const MainLayout: React.FC = () => {
   // If user signed out, display professional sign-in screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-dvh bg-slate-900 flex items-center justify-center safe-shell">
         <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200">
-          <div className="p-8 bg-slate-950 border-b border-slate-800 text-center">
+          <div className="p-6 sm:p-8 bg-slate-950 border-b border-slate-800 text-center">
             <div className="flex justify-center mb-3">
               <FamartLogo size="lg" textColor="text-white" />
             </div>
@@ -175,7 +176,7 @@ const MainLayout: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-8 space-y-5 text-xs">
+          <div className="p-6 sm:p-8 space-y-5 text-xs">
             {!isSupabaseConfigured && (
               <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-amber-800">
                 <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
@@ -276,8 +277,9 @@ const MainLayout: React.FC = () => {
               </button>
             </form>
 
-            <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-              Famart Clinic EMR · Kenya Data Protection Act 2019 Compliant
+            <div className="text-center text-[10px] text-slate-400 pt-2 border-t border-slate-100 space-y-2">
+              <InstallAppButton variant="inline" alwaysVisible />
+              <div>Famart Clinic EMR · Kenya Data Protection Act 2019 Compliant</div>
             </div>
           </div>
         </div>
@@ -286,7 +288,7 @@ const MainLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-dvh bg-slate-50 flex">
       {/* Collapsible Left Navigation Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -296,7 +298,7 @@ const MainLayout: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
+      <div className="flex-1 lg:pl-64 flex flex-col min-w-0 pb-safe">
         <TopBar
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           activeView={activeView}
@@ -304,7 +306,7 @@ const MainLayout: React.FC = () => {
           onNavigate={handleNavigate}
         />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {/* RBAC Route Guard: If role cannot access this module, show Access Restricted card */}
           {activeView !== 'dashboard' && activeView !== 'patient_detail' && !canAccess(activeView) ? (
             <div className="bg-white rounded-xl border border-red-200 p-8 shadow-sm text-center max-w-lg mx-auto my-12 space-y-3">

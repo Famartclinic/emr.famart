@@ -162,7 +162,7 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
     <>
       <div className="space-y-5 no-print">
         {/* Top action and back breadcrumb */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={onBack}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
@@ -171,7 +171,7 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
             Back to Directory
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleBrowserPrint}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
@@ -461,7 +461,7 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full min-w-[720px] text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] border-b border-slate-200">
                 <tr>
                   <th className="py-2.5 px-4">Date/Time</th>
@@ -633,7 +633,7 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full min-w-[720px] text-left text-xs">
                     <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
                       <tr>
                         <th className="py-1.5 px-3">Test Investigation</th>
@@ -776,7 +776,7 @@ export const PatientProfileView: React.FC<PatientProfileViewProps> = ({
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full min-w-[720px] text-left text-xs">
                     <thead className="bg-slate-50 text-slate-500 uppercase text-[10px]">
                       <tr>
                         <th className="py-1 px-3">Item Description</th>

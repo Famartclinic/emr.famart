@@ -253,7 +253,7 @@ export const AppointmentsQueueView: React.FC<AppointmentsQueueViewProps> = ({
           {/* Queue List Table */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full min-w-[720px] text-left text-xs">
                 <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] border-b border-slate-200">
                   <tr>
                     <th className="py-3 px-4">Patient / Visit Ref</th>
@@ -339,7 +339,7 @@ export const AppointmentsQueueView: React.FC<AppointmentsQueueViewProps> = ({
       {activeTab === 'appointments' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full min-w-[720px] text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] border-b border-slate-200">
                 <tr>
                   <th className="py-3 px-4">Ref / Patient</th>
@@ -417,8 +417,8 @@ export const AppointmentsQueueView: React.FC<AppointmentsQueueViewProps> = ({
 
       {/* Book Appointment Modal */}
       {isBookModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+        <div className="modal-overlay">
+          <div className="modal-panel max-w-lg">
             <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
               <h2 className="text-sm font-bold flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4 text-red-400" />
@@ -442,7 +442,7 @@ export const AppointmentsQueueView: React.FC<AppointmentsQueueViewProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">Appointment Date *</label>
                   <input
@@ -465,7 +465,7 @@ export const AppointmentsQueueView: React.FC<AppointmentsQueueViewProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-700 font-semibold mb-1">Clinician</label>
                   <select

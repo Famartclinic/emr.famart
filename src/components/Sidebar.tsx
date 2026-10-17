@@ -18,6 +18,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { FamartLogo } from './FamartLogo';
+import { InstallAppButton } from './InstallAppButton';
 import { useAuth } from '../context/AuthContext';
 import { StorageService } from '../services/storage';
 
@@ -108,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 transition-transform duration-200 lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-40 w-64 pt-safe pb-safe bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 transition-transform duration-200 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -176,11 +177,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </div>
 
-        {/* Footer: facility status & compliance */}
-        <div className="p-4 border-t border-slate-800/80 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-200">Famart Clinic Nairobi</span>
-            <span className="flex items-center gap-1.5 text-[10px] text-emerald-400">
+        {/* Footer: install prompt, facility status & compliance */}
+        <div className="p-4 border-t border-slate-800/80 space-y-2.5">
+          <InstallAppButton variant="sidebar" />
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-semibold text-slate-200 truncate">Famart Clinic Nairobi</span>
+            <span className="flex items-center gap-1.5 text-[10px] text-emerald-400 shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               Online
             </span>
