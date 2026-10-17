@@ -4,15 +4,18 @@
   "name": "emr-famart",
   "compatibility_date": "2026-10-12",
   "workers_dev": true,
+  // Cloudflare's git build only runs `npx wrangler deploy`, so the build step
+  // has to live here for dist/ to exist before the assets are collected.
+  "build": {
+    "command": "bun run build"
+  },
   "assets": {
     "directory": "./dist",
     // Client-side routing: unknown paths fall back to index.html.
     "not_found_handling": "single-page-application"
-  },
-  "routes": [
-    {
-      "pattern": "*emr.famartclinic.co.ke/*",
-      "zone_name": "famartclinic.co.ke"
-    }
-  ]
+  }
+  // Routes are deliberately NOT declared here. The custom domain
+  // (*emr.famartclinic.co.ke/*) is managed in the Cloudflare dashboard, and
+  // declaring it here makes `wrangler deploy` attempt a route API call that
+  // fails with a permissions error, exiting non-zero and failing CI/deploys.
 }
